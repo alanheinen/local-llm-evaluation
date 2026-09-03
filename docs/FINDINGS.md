@@ -6,6 +6,10 @@ LPDDR5X, ~273 GB/s), August–September 2026. Roughly 25,000 scored cases.
 Numbers specific to this hardware are marked as such. The conclusions in
 **bold** are the ones we expect to transfer.
 
+This is the condensed version. The full write-up — how models were selected,
+how the engines were chosen and configured, what was tuned and why — is in
+[PAPER.md](PAPER.md).
+
 ---
 
 ## The machine sets the terms
