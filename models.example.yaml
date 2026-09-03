@@ -1,0 +1,18 @@
+# Copy to models.yaml and edit. `name` is what you pass to --models;
+# `served_name` is what the endpoint calls it, if they differ.
+#
+# load_seconds is only used to order the sweep so a broken setup fails on the
+# cheapest model first. Measure it once (first request latency minus median
+# case latency) rather than guessing - ours were wrong by up to 3x while the
+# file claimed they were measured.
+models:
+  - name: my-small-model
+    served_name: my-small-model
+    load_seconds: 140
+    max_tokens: 4096          # cap reasoning models here, see docs/METHODOLOGY.md
+    notes: "Fast, for smoke tests."
+
+  - name: my-large-model
+    served_name: my-large-model
+    load_seconds: 500
+    max_tokens: 4096

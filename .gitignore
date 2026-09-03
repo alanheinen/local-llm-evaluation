@@ -1,0 +1,6 @@
+models.yaml
+results/
+suites/*.yaml
+__pycache__/
+*.pyc
+.venv/
