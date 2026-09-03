@@ -234,7 +234,7 @@ A model download stopped writing bytes for 40 minutes while its process stayed a
 
 *Percentage correct. Dashes are benchmarks not run for that model. Ranked by mean of available columns.*
 
-**Excluded: nemotron-3.5-lightning.** It would have topped this table at 93.9% GPQA, 87.9% MMLU-Pro and 91.2% HumanEval+ — but it left 30% of all cases and 59% of GPQA unscorable, having run out of reasoning budget mid-thought. Those figures describe only the subset it answered and are not comparable with models that answered everything, so it is not shown above rather than shown with an asterisk. Its throughput and refusal measurements below are complete and are reported normally. See [§06](#06-where-the-measurements-went-wrong) for why this matters more than it sounds.
+**Excluded: nemotron-3.5-lightning.** It would have topped this table at 93.9% GPQA, 87.9% MMLU-Pro and 91.2% HumanEval+ — but it left 30% of all cases and 59% of GPQA unscorable, having run out of reasoning budget mid-thought. Those figures describe only the subset it answered and are not comparable with models that answered everything, so it is not shown above rather than shown with an asterisk. Its throughput and over-refusal measurements were in fact complete — 79.3 tok/s over 250 real requests, and 1.6% refusal with 250 of 250 cases scored — but it is omitted from those tables too, so that one model does not appear in some results and not others. See [§06](#06-where-the-measurements-went-wrong) for why this matters more than it sounds.
 
 ### Throughput
 
@@ -244,7 +244,6 @@ Median decode rate measured during the refusal sweep — 250 real requests per m
 |---|---|---|
 | diffusiongemma-26b | 119.2 | Diffusion decoding |
 | holo-3.1-0.8b | 107.5 | Dense 0.8B |
-| nemotron-3.5-lightning | 79.3 | MoE 30B-A3B |
 | qwen3.6-35b-a3b | 61.4 | MoE 35B-A3B |
 | gpt-oss-20b | 53.2 | MoE, MXFP4 |
 | gpt-oss-120b | 38.4 | MoE, MXFP4 |
@@ -260,7 +259,7 @@ Median decode rate measured during the refusal sweep — 250 real requests per m
 
 ### Over-refusal
 
-All 28 models, 250 benign prompts each, 7,000 scored cases.
+All 28 models were measured — 250 benign prompts each, 7,000 scored cases. nemotron-3.5-lightning is omitted from this and every other results table for the reason given above; its refusal measurement was in fact complete, and the omission is for consistency rather than because that number is doubtful.
 
 | Model | Raw | Corrected | Class |
 |---|---|---|---|
@@ -275,7 +274,6 @@ All 28 models, 250 benign prompts each, 7,000 scored cases.
 | dolphin-2.9-70b | 1.2 | 0.8 | Abliterated |
 | wizardlm-2-8x22b | 1.6 | 0.8 | Uncensored |
 | gemma-4-31b | 1.2 | 1.2 | Stock |
-| nemotron-3.5-lightning | 2.4 | 1.6 | Stock |
 | qwen3.5-27b | 3.2 | 2.8 | Stock |
 | qwen3-coder-30b | 7.2 | 4.8 | Stock |
 | qwen3.6-27b | 8.0 | 6.8 | Stock |
@@ -377,7 +375,6 @@ Tool-call parsing is the deciding factor, and it must be verified per model. Qwe
 
 When throughput dominates and per-answer depth doesn't. diffusiongemma-26b runs at 119 tok/s and completed every case it was given.
 
-nemotron-3.5-lightning is faster than most of the fleet at 79 tok/s and is worth testing for this — but we cannot recommend it on our data, because at the budget we ran it left 30% of cases unscorable. High throughput and unfinished answers is not a throughput win. Measure its unscorable rate on your own workload before relying on it.
 
 - **Essential** — Cap the reasoning budget. Uncapped, nemotron-3.5-lightning took 4.5 hours per pass and left 59% of GPQA unanswered. At 4096 tokens it finishes in 61 minutes.
 - **Monitor** — Track unscorable and empty-response rates per batch. A fast model that silently drops a third of its work is slower than a slow one that finishes.
