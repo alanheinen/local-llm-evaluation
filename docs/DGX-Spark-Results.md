@@ -218,7 +218,6 @@ A model download stopped writing bytes for 40 minutes while its process stayed a
 
 | Model | GPQA | MMLU-Pro | HumanEval+ | IFEval |
 |---|---|---|---|---|
-| nemotron-3.5-lightning* | 93.9* | 87.9* | 91.2* | — |
 | gpt-oss-120b | 62.6 | 75.4 | 89.6 | — |
 | gpt-oss-20b | 61.1 | 68.7 | 90.9 | — |
 | qwen3.5-27b | 55.1 | 66.0 | 90.9 | — |
@@ -235,7 +234,7 @@ A model download stopped writing bytes for 40 minutes while its process stayed a
 
 *Percentage correct. Dashes are benchmarks not run for that model. Ranked by mean of available columns.*
 
-* nemotron-3.5-lightning left 30% of all cases and 59% of GPQA unscorable. Its figures describe only the subset it answered and are not comparable to models that answered everything. Shown for completeness; excluded from every ranking and recommendation.
+**Excluded: nemotron-3.5-lightning.** It would have topped this table at 93.9% GPQA, 87.9% MMLU-Pro and 91.2% HumanEval+ — but it left 30% of all cases and 59% of GPQA unscorable, having run out of reasoning budget mid-thought. Those figures describe only the subset it answered and are not comparable with models that answered everything, so it is not shown above rather than shown with an asterisk. Its throughput and refusal measurements below are complete and are reported normally. See [§06](#06-where-the-measurements-went-wrong) for why this matters more than it sounds.
 
 ### Throughput
 
@@ -374,9 +373,11 @@ Tool-call parsing is the deciding factor, and it must be verified per model. Qwe
 
 ### Bulk and batch processing
 
-**`nemotron-3.5-lightning` · `diffusiongemma-26b`**
+**`diffusiongemma-26b`**
 
-When throughput dominates and per-answer depth doesn't. diffusiongemma-26b runs at 119 tok/s, nemotron-3.5-lightning at 79.
+When throughput dominates and per-answer depth doesn't. diffusiongemma-26b runs at 119 tok/s and completed every case it was given.
+
+nemotron-3.5-lightning is faster than most of the fleet at 79 tok/s and is worth testing for this — but we cannot recommend it on our data, because at the budget we ran it left 30% of cases unscorable. High throughput and unfinished answers is not a throughput win. Measure its unscorable rate on your own workload before relying on it.
 
 - **Essential** — Cap the reasoning budget. Uncapped, nemotron-3.5-lightning took 4.5 hours per pass and left 59% of GPQA unanswered. At 4096 tokens it finishes in 61 minutes.
 - **Monitor** — Track unscorable and empty-response rates per batch. A fast model that silently drops a third of its work is slower than a slow one that finishes.

@@ -14,7 +14,7 @@ in here.
 
 ## What you get
 
-- **[docs/PAPER.md](docs/PAPER.md)** — the full write-up. The whole study in the
+- **[docs/DGX-Spark-Results.md](docs/DGX-Spark-Results.md)** — the full write-up. The whole study in the
   order it happened: the machine's binding constraint, how models were chosen,
   engine selection and configuration, tuning, what we measured and why, the
   measurement errors we found in our own instruments, conclusions, and quick
@@ -116,7 +116,7 @@ benchmarks than on task-flavoured suites — so test quantisation on knowledge
 tasks specifically.
 
 The full write-up — selection, engines, tuning, benchmarking, conclusions and
-per-use-case quick starts — is in [docs/PAPER.md](docs/PAPER.md). The short
+per-use-case quick starts — is in [docs/DGX-Spark-Results.md](docs/DGX-Spark-Results.md). The short
 version is [docs/FINDINGS.md](docs/FINDINGS.md).
 
 ---

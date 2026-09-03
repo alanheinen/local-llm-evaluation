@@ -8,7 +8,7 @@ Numbers specific to this hardware are marked as such. The conclusions in
 
 This is the condensed version. The full write-up — how models were selected,
 how the engines were chosen and configured, what was tuned and why — is in
-[PAPER.md](PAPER.md).
+[DGX-Spark-Results.md](DGX-Spark-Results.md).
 
 ---
 
