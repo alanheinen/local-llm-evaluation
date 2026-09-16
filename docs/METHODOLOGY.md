@@ -174,3 +174,41 @@ in 61 minutes with no accuracy loss we could detect.
 But the cap is what produced the 59%-unscorable disaster in §2. So: **cap the
 budget, then read the unscorable rate.** If it is high, the cap is too low for
 that model and its scores are not comparable with anything.
+
+A high rate under a *generous* cap is a different finding, and a more important
+one: the model does not terminate on that class of question. In a 2026-09 trial
+a candidate left 7 of 21 cases unanswered at a 16,384-token budget, every one of
+them stopping exactly at the ceiling. That is not a configuration problem to
+tune away. It is the measurement.
+
+---
+
+## 9. Keep a private suite, and let it decide
+
+Public benchmarks tell you whether a model is good. They cannot tell you whether
+it is good at your work, and the two can point in opposite directions — we have
+now measured a model that beat our default by 12 points on GPQA, could do
+something our default cannot do at all, and scored 0.480 against its 0.827 on
+twenty-one cases drawn from our own incidents.
+
+What makes such a suite work:
+
+- **Write cases from failures that actually happened**, with the real
+  constraints attached. The value is concentrated in cases where the textbook
+  answer is wrong, because reciting best practice is exactly what a model does
+  when it has not engaged with the specifics.
+- **Score them programmatically.** Regex or schema assertions over a known
+  answer, so a rerun costs nothing and no judge is required.
+- **Twenty cases is enough to change a decision.** Ours cost 90 minutes of GPU
+  beside a 22-hour public benchmark run and reversed its verdict.
+- **Do not publish it.** A private suite cannot leak into training data, which
+  is the other reason its signal outlives a public benchmark's.
+
+Keep the public suites as a capability floor — they catch a model that is simply
+weak, and they are comparable across the field. Let your own cases pick the
+winner among the models that clear it.
+
+One caution, from our own data: a single case is not a measurement. In the same
+trial a case scored **0.00 and 0.50** on two runs of identical input, because
+regex assertions over free prose are sensitive to phrasing. Repeat the suite, or
+accept that any gap narrower than a case or two is noise.

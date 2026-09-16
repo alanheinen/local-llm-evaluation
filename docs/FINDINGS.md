@@ -1,7 +1,8 @@
 # Findings
 
 Measured across 28 models on an NVIDIA DGX Spark (GB10, 121 GiB unified
-LPDDR5X, ~273 GB/s), August–September 2026. Roughly 25,000 scored cases.
+LPDDR5X, ~273 GB/s), August–September 2026. Roughly 25,000 scored cases. One
+later trial (2026-09-15, a 29th model, 1,059 cases) is included and marked.
 
 Numbers specific to this hardware are marked as such. The conclusions in
 **bold** are the ones we expect to transfer.
@@ -146,6 +147,74 @@ summary. The honest failure in the same cell took 40 steps and 752 seconds and
 said plainly it hadn't finished.
 
 Any review process that asks "did the agent verify its work?" passes these runs.
+
+---
+
+## A benchmark lead does not transfer to your own work
+
+*2026-09-15, one model, 1,059 cases.*
+
+We trialled a new checkpoint — a sparse-attention MoE at NVFP4, 79 GiB of
+weights, served with thinking enabled and a 16,384-token reasoning budget — as a
+replacement for our default. It was evaluated the way most model comparisons are
+done: five public suites, 1,038 cases, 21.8 GPU-hours.
+
+It won.
+
+| | Candidate | Incumbent default |
+|---|---:|---:|
+| GPQA-diamond | **74.7%** | 62.6% |
+| HumanEval+ | 93.3% | — |
+| IFEval | 87.1% | — |
+| XSTest-safe | 95.2% | — |
+| Parallel tool calls | **works** | **0.000 — cannot** |
+
+On the strength of that we would have promoted it. Then we ran the 21 cases we
+keep privately — each one written from an incident that actually happened on our
+own infrastructure, where the textbook answer is the wrong one. A backup that
+restores rows encrypted with a key the backup does not contain. A network plugin
+installed but never configured. A verification script comparing a boolean as
+text, so it reports failure on a healthy system.
+
+| | Candidate | Incumbent default |
+|---|---:|---:|
+| Private suite, 14 hardest cases | **0.480** | 0.827 |
+| All 21 private cases | **0.634** | 0.865 |
+| Produced no answer at all | **7 of 21** | 0 of 21 |
+| Tokens spent on those 21 cases | 177,297 | 20,614 |
+| Wall clock | 90 min | 9 min |
+
+**The strongest public-benchmark result we measured all year belonged to a model
+that could not do our work.** Not because it lacked knowledge — it beat the
+incumbent outright on five of the private cases, including one nothing else had
+ever solved — but because on seven of them it never stopped reasoning. Each of
+those seven consumed its entire 16,384-token budget and emitted nothing. One
+produced 59,000 characters restating a single hypothesis, on a question whose
+reference answer is two sentences.
+
+Six of the seven were the hardest cases in the set: exactly the work you would
+keep a local model for.
+
+**Corollary, and the cheap part of this story.** The private suite took 90
+minutes on top of a 22-hour benchmark run — about 7% — and reversed the verdict.
+If you have any body of real incidents, write twenty of them up as cases. It is
+the highest-value hour of evaluation work we have done, and nothing published
+can substitute for it: a public benchmark measures whether a model is good, and
+your own cases measure whether it is good *at what you do*.
+
+### Two smaller things that run fell out of
+
+**A five-case gate is a smoke test, not a measurement.** We had set a threshold
+of ≥0.90 on parallel tool calls. The category holds five cases, so one miss
+scores 0.80 and fails the gate — and the miss was the model making one *extra*
+correct call rather than failing to parallelise at all, the opposite of the
+defect the gate existed to catch. Size a gate's case count to the decision it
+gates.
+
+**Report the unscorable rate per suite, not per run.** The candidate's overall
+rate was a tolerable-looking 7.2%. On GPQA alone it was 21.7%, and on the private
+suite 33%, concentrated entirely in the hard cases. Averaging across easy cases
+hid the defect that decided the trial.
 
 ---
 

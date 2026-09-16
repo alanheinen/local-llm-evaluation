@@ -33,6 +33,9 @@ Four models chosen for permissiveness. None beat a stock gpt-oss build. The most
 **Atlas is faster, not 3× faster** — `1.68×`  
 Held the checkpoint fixed and varied only the engine. The published 3× compares different models on a bandwidth-bound machine, where parameter count alone explains most of the gap.
 
+**A later challenger won every public suite and lost on our own cases** — `0.480 vs 0.827`  
+Trialled 2026-09-15, after the study above. It beat the default by 12.1pp on GPQA and made parallel tool calls the default cannot make at all — then failed to answer 7 of 21 cases drawn from our own incidents, looping until its reasoning budget ran out. Section 11.
+
 ### The five findings that change what you'd run
 
 1. **Active parameters, not total, set decode speed.** A 122B MoE with 10B active decodes faster than a dense 27B. On a bandwidth-bound machine, "how big is it" is the wrong question; "how much of it moves per token" is the right one.
@@ -419,3 +422,53 @@ The measurement approach matters more than our specific numbers, which are one m
 
 The suites here are standard and public — GPQA Diamond, MMLU-Pro, HumanEval+ via EvalPlus, IFEval, XSTest. The trap suite is bespoke, and its design constraint is the transferable part: each defect needs a *behavioural* detector that plants a condition and checks an outcome, self-tested before every run to prove it fires when the bug is present and clears when it is fixed.
 
+
+## 11. Addendum: the model that won every public benchmark and lost the private one (2026-09-15)
+
+Two weeks after the study above closed, a new checkpoint arrived that looked like a straight upgrade to the default: a sparse-attention MoE at NVFP4, 79.4 GiB of weights, part of its parameter table read from NVMe rather than held in memory. It was served on an isolated loopback port at 32K context with thinking enabled and a 16,384-token reasoning budget, and evaluated against four gates agreed before the run: GPQA ≥65.6%, parallel tool calls ≥0.90, unscorable <20%, and ≥30 tok/s.
+
+### The public result
+
+1,038 cases, 21.8 GPU-hours, 2.57M completion tokens, concurrency 1.
+
+| Suite | Candidate | Default |
+|---|---:|---:|
+| GPQA-diamond | **74.7%** | 62.6% |
+| HumanEval+ | 93.3% | — |
+| HumanEval | 87.5% | — |
+| IFEval | 87.1% | — |
+| XSTest-safe | 95.2% | — |
+| BFCL, all six categories | 83.3% | — |
+| Parallel tool calls | 0.80 | **0.000** |
+
+A 12.1pp GPQA lead, far outside the 0.0–0.8pp noise floor established in section 06, and the first model we had measured that emits several tool calls in one turn at all — the default emits one where several are required, a defect section 07 documents. Throughput came in at 30.9 tok/s median (p25 29.0, p75 32.6), which we recorded as *not proven* rather than passed: single-load figures cannot resolve a 30-versus-32 question on a machine with 13.6% across-load variance.
+
+Three of four gates met or arguably met. On that evidence, promote.
+
+### The private result
+
+Before tearing the candidate down we ran 21 cases we keep privately — each written from an incident that actually happened on our own infrastructure, scored by regex and schema assertions, no judge. They exist because textbook-correct answers are often wrong against a real constraint, and that is the failure mode that wastes an operator's time.
+
+| | Candidate | Default @low | Default @medium |
+|---|---:|---:|---:|
+| 14 hardest cases | **0.480** | 0.827 | 0.827 |
+| All 21 | **0.634** | 0.865 | 0.865 |
+| No answer produced | **7 / 21** | 0 | 0 |
+| Completion tokens | 177,297 | 20,614 | 27,950 |
+| Wall clock | 90 min | 9 min | 12 min |
+
+### What went wrong, and what didn't
+
+The candidate is not weak on this material. It beat the default outright on five of the 21 — including one case no model in the entire study had ever solved — and matched it on the rest it finished.
+
+It lost because seven cases scored zero for producing nothing at all. Every one consumed the full 16,384-token budget and stopped exactly at the ceiling. One spent 59,000 characters restating a single hypothesis in a loop, on a question whose reference answer is two sentences and whose answer budget was 250 tokens. Six of the seven were the hardest cases in the set.
+
+This is the same shape as the survivorship-bias finding in section 06 — a model whose score describes only the questions it finished — but it arrived in a harder-to-spot form. The overall unscorable rate across all 1,059 cases was 7.2%, comfortably inside the 20% flag. Per suite it was 21.7% on GPQA and 33% on the private cases. **An aggregate unscorable rate can pass while the same defect is disqualifying on the work you care about.**
+
+### Verdict, and what it cost to reach it
+
+Not promoted. Nothing in the serving configuration changed; the image and the checkpoint were deleted.
+
+The private cases cost 90 minutes beside a 22-hour public benchmark run — about 7% — and reversed the conclusion. That is the transferable part of this addendum. Public suites are a capability floor and are comparable across the field; they cannot tell you whether a model can do your work, and on this evidence a large lead on them is not even weak evidence that it can.
+
+One open question we did not answer: the trial ran with a generous reasoning budget, and an earlier correctness check on the same checkpoint showed genuinely adaptive reasoning on short prompts — a few characters of thinking on trivial questions. A hard cap of 2–4k might convert those seven loops into answers. We deleted the weights rather than find out, which is a defensible call for a fleet of one machine and the wrong one if you are choosing between candidates on a machine you can spare.

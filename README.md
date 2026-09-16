@@ -79,7 +79,7 @@ change. A stale copy in a repo is a silent correctness problem.
 
 ---
 
-## The five findings that changed what we run
+## The findings that changed what we run
 
 Measured across 28 models on an NVIDIA DGX Spark (GB10, 121 GiB unified memory,
 ~273 GB/s). The numbers are ours; the shape of them is likely to hold on any
@@ -114,6 +114,15 @@ Three matched FP8/NVFP4 pairs showed no measurable refusal difference (all
 inside noise). Accuracy costs a few points, and the cost is larger on knowledge
 benchmarks than on task-flavoured suites — so test quantisation on knowledge
 tasks specifically.
+
+**6. A benchmark lead does not transfer to your own work.** *(added 2026-09-15)*
+A later candidate beat our default by **12.1pp on GPQA** and made parallel tool
+calls the default cannot make at all. On twenty-one cases written from incidents
+that actually happened on our own infrastructure it scored **0.480 against the
+default's 0.827**, and produced no answer at all on 7 of the 21 — it looped until
+its reasoning budget ran out, six times on the hardest cases in the set. We did
+not promote it. Those private cases cost 90 minutes beside a 22-hour public
+benchmark run, and reversed its verdict.
 
 The full write-up — selection, engines, tuning, benchmarking, conclusions and
 per-use-case quick starts — is in [docs/DGX-Spark-Results.md](docs/DGX-Spark-Results.md). The short
