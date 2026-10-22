@@ -259,6 +259,41 @@ Full write-up: [DGX-Spark-Results.md §12](DGX-Spark-Results.md#12-addendum-a-po
 
 ---
 
+## Fixing the defect doesn't make the model better
+
+*2026-10-21, the September candidate re-run with a forced reasoning cap.*
+
+The model that lost our private suite in September did it by never stopping:
+seven cases spent the whole 16k budget and emitted nothing. Its September budget
+was only a `max_tokens` ceiling. Our engine now accepts a thinking budget that
+*forces* the end-of-thinking tag when it runs out, so we re-ran the same 21
+cases with a real cap. The model ran at 4-bit (IQ4_XS): the NVFP4 GGUF needs a
+fork of the engine.
+
+| | Thinking off | Cap 4k | Cap 2k | September (no cap) | Resident 27B | Default |
+|---|---:|---:|---:|---:|---:|---:|
+| Private suite | 0.840 | 0.836 | 0.844 | 0.634 | 0.840 | 0.873 |
+| No answer | 0 / 63 | 0 / 63 | 0 / 21 | 7 / 21 | 0 | 0 |
+| Median tokens | 300 | 4,325 | 2,298 | — | 300 | — |
+
+- **The cap works.** Every case got an answer. The model still uses nearly the
+  whole budget, so the cap ends its thinking for it, and the answers that follow
+  are sound. The September loss was a termination defect.
+- **With the defect fixed, there is no win.** The candidate ties the resident it
+  would replace, trails the default, and needs the whole machine at 28 tok/s.
+  Capped thinking costs 8× the tokens of thinking off for the same score.
+- **The one real advantage** is that it is the most conservative agent we've
+  measured. With the safety gate open it executed 6 of 15 malicious actions,
+  against 9 for the resident and 15 for the default.
+- **A harness note:** seven of 48 structured answers had the right decision and
+  were missing only their final `}`. A strict parser fails them all. Report a
+  lenient score beside the strict one when the gap is this systematic, and say
+  which one decides.
+
+Full write-up: [DGX-Spark-Results.md §13](DGX-Spark-Results.md#13-addendum-capping-the-reasoning-fixed-the-loops-and-nothing-else-2026-10-21).
+
+---
+
 ## What we got wrong
 
 ### The apparent winner was survivorship bias

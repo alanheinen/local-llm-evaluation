@@ -134,6 +134,14 @@ looked like a loss. Against a control on the same build, it won every case that
 differed. Separately, its multi-token-prediction draft head made generation
 **2.0–2.6× faster** end to end.
 
+**8. Fixing the defect doesn't make the model better.** *(added 2026-10-21)*
+The candidate from finding 6 looped on 7 of 21 private cases. Re-run with a
+reasoning cap that *forces* an ending, it answered all of them: **0 of 105**
+unanswered across three settings. It then scored **0.840**, exactly the resident
+27B's score and under the default's 0.873. Capped thinking cost 8× the tokens of
+thinking off, for no gain. The loops explained the September loss; removing them
+didn't create a win.
+
 The full write-up — selection, engines, tuning, benchmarking, conclusions and
 per-use-case quick starts — is in [docs/DGX-Spark-Results.md](docs/DGX-Spark-Results.md). The short
 version is [docs/FINDINGS.md](docs/FINDINGS.md).

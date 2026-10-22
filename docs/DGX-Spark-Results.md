@@ -547,3 +547,49 @@ Not promoted. The primary claim failed its gates. Quality held, but tool calling
 
 1. A draft head is worth about 2× here.
 2. Moving engine and quantisation can shift your own suite's scores by more than the model change you are testing, so always run the control.
+
+
+## 13. Addendum: capping the reasoning fixed the loops, and nothing else (2026-10-21)
+
+Section 11 ended with a question we chose not to answer: would a hard 2–4k reasoning cap have turned that candidate's seven loops into answers? Five weeks later we answered it.
+
+### What changed, and what ran
+
+- **The cap is now real.** In September, the "reasoning budget" was only `max_tokens`: a looping model ran into the ceiling and emitted nothing. llama.cpp now accepts a per-request thinking budget and, when it is spent, *forces the end-of-thinking tag* so the model has to answer. A canary confirmed it: a prompt designed to make the model think long, capped at 256 thinking tokens, stopped at 133 tokens with the correct answer.
+- **Quantisation: 4-bit, but not NVFP4.** We wanted the NVFP4 build again. The engine we used in September is gone, and the only NVFP4 GGUF that fits uses a tensor type upstream llama.cpp rejects (`invalid ggml type 100`); it needs its converter's fork. We ran the smallest 4-bit GGUF upstream serves: an importance-matrix IQ4_XS at 87.2 GiB, 4.25 bits per weight.
+- **The whole machine.** It doesn't fit beside the 120B default, so every resident model was stopped for the 2 h 37 m window. 19.5 GiB stayed available throughout.
+- **Same private suite as September,** the 21 cases written from our own incidents, run three ways: thinking off, thinking capped at 4,096 tokens, and capped at 2,048. The public-suite capability floor was already established in September and was not rerun.
+
+### The loops are gone
+
+| | Thinking off ×3 | Cap 4k ×3 | Cap 2k ×1 | September, 16k ceiling, no cap |
+|---|---:|---:|---:|---:|
+| Private suite | 0.840 | 0.836 | 0.844 | 0.634 |
+| No answer | **0 / 63** | **0 / 63** | **0 / 21** | 7 / 21 |
+| Median tokens per case | 300 | 4,325 | 2,298 | — |
+| Wall clock per pass | 4.5 min | 35 min | 21 min | 90 min |
+
+With a cap that forces an ending, every case gets an answer. The capped runs use almost the whole budget, with a median of 4,325 against a 4,096 cap, so the model still doesn't decide to stop. The cap decides, and the answer that follows is sound. September's 0.634 was a termination defect, not a capability ceiling.
+
+### And so is the advantage
+
+| | Candidate, thinking off | Resident 27B | Default 120B MoE |
+|---|---:|---:|---:|
+| Private suite | **0.840** | 0.840 | 0.873 |
+| Function calling, 30 | 0.800 | 0.733 | — |
+| Ask-before-acting, 48 | 0 wrong actions; 0.750 strict, 0.896 lenient | 0 wrong actions | — |
+| Six sandboxed side-effect tasks, gate open | **6 / 15** malicious executed | 9 / 15 | 15 / 15 |
+| Decode | 28.2 tok/s | 10.5 | 55 |
+| Uncached 8K prefill | 827 tok/s | 753 | 1,878 |
+
+Three readings:
+
+1. **Thinking bought nothing on our work.** A 4k cap costs eight times the tokens of thinking off, for 0.836 against 0.840. Thinking fixed two cases and broke three others. On this suite, the reasoning mode is pure cost.
+2. **It is a peer of the resident 27B, not an upgrade over the default.** The 0.033 gap to the default is within what section 12 showed a change of engine build can do, so we don't claim it is *worse*. We just can't find a reason to prefer it. It needs the whole machine, and it decodes at half the default's speed.
+3. **It is the most conservative agent we have measured.** It was the only model to refuse the push to a remote repository as well as the exfiltration and the planted instruction. That is a real point in its favour for unattended agent work, and the only one.
+
+The lenient approval figure needs an explanation. Seven of 48 answers were rejected as unparseable. Every one of the seven had the right decision in valid-looking JSON, missing only the final closing brace. The pattern is systematic, so it looks like a template or tokenizer interaction rather than judgement, but we didn't root-cause it. It is exactly the kind of failure that breaks a strict harness while a human reader would never notice.
+
+### Verdict
+
+Not promoted, and this time not because of a defect. The September question has an answer: **yes, a forced cap converts the loops into answers**, and with the defect gone, the model scores the same as the resident it would replace while costing the whole machine. The transferable lesson extends section 11's: a private suite catches the defect, and fixing the defect does not by itself make the model a better choice. Measure it again with the fix in place before you decide.
