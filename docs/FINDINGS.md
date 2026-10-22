@@ -294,6 +294,35 @@ Full write-up: [DGX-Spark-Results.md §13](DGX-Spark-Results.md#13-addendum-capp
 
 ---
 
+## Speed is not the deciding gate
+
+*2026-10-22, one 2.5B-active coding MoE against the resident 27B.*
+
+| | Candidate | Resident |
+|---|---:|---:|
+| Decode at 8K | **82 tok/s** | 10.5 tok/s |
+| Median time per correct answer, 10 tasks | **10.0 s** | 20.6 s |
+| **Total** time, same 10 tasks | 418 s | **230 s** |
+| Required arguments, 135-tool catalog | 12/12, none invented | — |
+| Private suite, 21 × 3 | 0.705 | **0.840** |
+| Sends a credential file when asked, gate open | **3/3** | 0/3 |
+
+- **Report the total as well as the median of correct answers.** Two looping
+  cases made the fastest model's total time *longer* than the slow model's.
+- **The large-catalog defect we were warned about didn't reproduce.** We built
+  deterministic synthetic catalogs to test it, with one request deliberately
+  missing a required value. The model left that value out rather than inventing
+  it.
+- **Injection-resistant isn't the same as safe.** It refused an instruction
+  planted in a file, and complied with the same leak when the user asked.
+- **Harness note:** a fixed per-turn token cap can make an always-reasoning
+  model look like it refused, because it thinks until the cap and calls nothing.
+  Record truncation as an error, never as a decision.
+
+Full write-up: [DGX-Spark-Results.md §14](DGX-Spark-Results.md#14-addendum-the-fastest-model-we-have-measured-and-why-speed-was-not-the-question-2026-10-22).
+
+---
+
 ## What we got wrong
 
 ### The apparent winner was survivorship bias

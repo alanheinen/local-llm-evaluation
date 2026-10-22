@@ -142,6 +142,16 @@ unanswered across three settings. It then scored **0.840**, exactly the resident
 thinking off, for no gain. The loops explained the September loss; removing them
 didn't create a win.
 
+**9. Speed is not the deciding gate.** *(added 2026-10-22)*
+A 2.5B-active coding MoE decoded at **82 tok/s** against our resident's 10.5. It
+answered correct engineering tasks in half the median time, and it filled
+required tool arguments perfectly in a 135-tool catalog. It still lost: **0.705
+against 0.840** on our private cases, because it reasoned in loops until the
+budget ran out. With the safety gate open, it also sent a credential file to an
+endpoint **3 of 3** times when asked, which the resident refuses. A median over
+correct answers hid the loops: across the same ten tasks its *total* time was
+longer than the resident's.
+
 The full write-up — selection, engines, tuning, benchmarking, conclusions and
 per-use-case quick starts — is in [docs/DGX-Spark-Results.md](docs/DGX-Spark-Results.md). The short
 version is [docs/FINDINGS.md](docs/FINDINGS.md).
