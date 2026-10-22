@@ -472,3 +472,78 @@ Not promoted. Nothing in the serving configuration changed; the image and the ch
 The private cases cost 90 minutes beside a 22-hour public benchmark run — about 7% — and reversed the conclusion. That is the transferable part of this addendum. Public suites are a capability floor and are comparable across the field; they cannot tell you whether a model can do your work, and on this evidence a large lead on them is not even weak evidence that it can.
 
 One open question we did not answer: the trial ran with a generous reasoning budget, and an earlier correctness check on the same checkpoint showed genuinely adaptive reasoning on short prompts — a few characters of thinking on trivial questions. A hard cap of 2–4k might convert those seven loops into answers. We deleted the weights rather than find out, which is a defensible call for a fleet of one machine and the wrong one if you are choosing between candidates on a machine you can spare.
+
+
+## 12. Addendum: a post-training that promised fewer tokens, and the draft head that delivered speed (2026-10-21)
+
+A community post-training of our resident dense 27B (Qwen3.8-27B), released as Tess-4.5-27B, claimed the same benchmark pass counts as its base with **25% fewer completion tokens**, reasoning included. On a bandwidth-bound machine, tokens are wall clock, so a 25% cut would have been the cheapest speed-up available. It shipped with a separate MTP (multi-token prediction) draft head.
+
+### How it was run
+
+The question was "same answers in fewer tokens?", so the control had to differ from the candidate in the post-training only:
+
+- **Both arms Q8_0.** Our trial rule allows 4- or 8-bit only. Q8_0 is also a uniform, non-calibrated recipe, so two independent converters produce near-identical tensor layouts. A K-quant or imatrix build would have brought in a second variable.
+- **One engine build for both,** llama.cpp b11783, with identical flags: 32K context, one slot, flash attention, text only.
+- **The incumbent stayed up beside it**: the 120B MoE default. Two smaller residents were stopped for the 3 h 45 m window. Peak trial memory was 31 GiB, and at least 16.8 GiB stayed available throughout.
+- **Gates declared before the run.** In the order they were checked:
+  1. No parser or identity failures.
+  2. No loss on the private suite.
+  3. No new unsafe action with the action gate open.
+  4. A token cut of at least 20% at the median.
+  5. An end-to-end time cut of at least 15% at the median, with the paired confidence interval excluding zero.
+  6. For the draft head, at least 20% more end-to-end throughput with no change in output.
+
+### Quality: the post-training did no harm
+
+| | Post-training | Matched base |
+|---|---:|---:|
+| Private suite, 21 cases × 3, thinking off | **0.810** | 0.715 |
+| — per case | 3 wins, 0 losses | |
+| Ask-before-acting, 24 cases, T 0.7 | 0.875, 0 wrong actions | 0.833, 0 wrong actions |
+| Six sandboxed side-effect tasks × 3, gate open | refused exfiltration and injection 3/3 | identical |
+| Function-calling sample, 30 | 0.667 | 0.733 |
+
+The function-calling gap is two cases that each need several calls to the same function in one turn. The post-training made only the first call in each. Every call it made was well-formed and correct, so this is under-calling, not a parser defect. It is still a real regression on the one tool behaviour an agent here depends on.
+
+### Tokens: the claim did not reproduce
+
+There were ten predeclared cases: eight code-generation tasks with unit tests and two from the private suite. Both arms ran with thinking on, at temperature 0.6, under an identical 8,192-token reasoning budget. The run order was A-B-B-A, so drift over the window fell on both arms.
+
+| | Post-training | Base | Gate |
+|---|---:|---:|---|
+| Median completion tokens | 686 | 718 | **−4.5%** vs −20% |
+| Median end-to-end | 85 s | 89 s | **−4.2%** vs −15% |
+| Paired median latency difference | −10 s, 95% CI [−64, +15] s | | must exclude 0: **fails** |
+| Total tokens, 10 cases | 16,020 | 18,445 | −13% |
+| Cases answered correctly | 9 / 10 | 9 / 10 | both ran out of budget on the same case |
+
+The −13% total mostly comes from one case where the base model spent 2.7× as long on a question both arms answered correctly. Over the ten cases, the post-training was shorter on seven and longer on two, but the median barely moved. The 25% figure came from a different suite, at a higher reasoning-effort setting and temperature 1.0. Nothing here says it was wrong there. It did not transfer to engineering work.
+
+### The draft head: 2–2.6× end to end
+
+The test held the weights, build and context fixed and switched only the MTP draft head, at greedy decoding with thinking on and a 1,536-token ceiling:
+
+| Task shape | Without draft | With draft | Accepted |
+|---|---:|---:|---:|
+| Short code | 29.9 s | 11.7 s (**2.55×**) | 68% |
+| Long code | 190.3 s | 74.1 s (**2.57×**) | 76% |
+| Prose-heavy diagnosis | 189.4 s | 93.5 s (**2.03×**) | 53% |
+
+Decode went from 8.1 tok/s to between 16.5 and 20.9 tok/s, for 2.5 GiB more memory. Prose accepts fewer drafted tokens than code, as the release warned, and still roughly doubles.
+
+We had set byte-identical output at temperature 0 as the check for "no change". It **failed on all three**. The texts diverge a few hundred characters in, on choices like "pasted the function" versus "gave a stub", or `name` versus `hostname` for a variable. That is floating-point divergence from verifying a batch of drafted tokens at once, not a different model. The one task that finished inside the ceiling gave the identical final answer. **Byte identity was the wrong gate.** Compare answers or scores.
+
+The speed-up belongs to the draft head, not the post-training, and the base model has one of its own. That is the experiment worth running next.
+
+### The finding that matters more than the verdict
+
+The matched base, the same Qwen3.8-27B we already run, scored **0.715** on the private suite here. In production it scores **0.840**, as a different quantisation (a calibrated 5-bit K-quant) on a two-month-older build of the same engine. That 0.125 gap is larger than the 0.095 between candidate and control. The model is the same, and the scores were stable across repeats on both sides. The change is a quantisation recipe and an engine version, and on these cases that moved the score more than the post-training under test.
+
+So a private-suite score is a property of model, quantisation and engine together. A candidate on a new build compared against the incumbent's stored score would have read **0.810 vs 0.840, a loss**. Against a control on the same build it reads as **a win on every case that differed**. Neither reading is the truth about the post-training alone. Only the matched pair isolates it.
+
+### Verdict
+
+Not promoted. The primary claim failed its gates. Quality held, but tool calling regressed slightly. The trial bought two transferable results, and the token saving was not one of them:
+
+1. A draft head is worth about 2× here.
+2. Moving engine and quantisation can shift your own suite's scores by more than the model change you are testing, so always run the control.

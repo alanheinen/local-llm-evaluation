@@ -124,6 +124,16 @@ its reasoning budget ran out, six times on the hardest cases in the set. We did
 not promote it. Those private cases cost 90 minutes beside a 22-hour public
 benchmark run, and reversed its verdict.
 
+**7. Run the control on the same build, or your comparison measures the build.** *(added 2026-10-21)*
+A post-training that claimed 25% fewer tokens cut the median by **4.5%** on our
+work, so it failed. The bigger lesson came from its control. The same base model
+we already run scored **0.715** on our private cases on a new engine build and
+quantisation, against **0.840** in production: a larger gap than the one between
+candidate and control. Compared with the stored production score, the candidate
+looked like a loss. Against a control on the same build, it won every case that
+differed. Separately, its multi-token-prediction draft head made generation
+**2.0–2.6× faster** end to end.
+
 The full write-up — selection, engines, tuning, benchmarking, conclusions and
 per-use-case quick starts — is in [docs/DGX-Spark-Results.md](docs/DGX-Spark-Results.md). The short
 version is [docs/FINDINGS.md](docs/FINDINGS.md).

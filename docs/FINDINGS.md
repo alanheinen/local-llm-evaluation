@@ -218,6 +218,47 @@ hid the defect that decided the trial.
 
 ---
 
+## Same model, new build, different score
+
+*2026-10-21, one post-training against its own base, 3.75 hours.*
+
+A post-training of the dense 27B we run as our resident model claimed the same
+benchmark pass counts with 25% fewer completion tokens. We tested that claim
+against a control that differed only in the post-training: both arms at 8-bit,
+on one engine build, with identical flags.
+
+| | Post-training | Matched base | Gate |
+|---|---:|---:|---|
+| Median tokens, thinking on, 10 tasks | −4.5% | — | −20% |
+| Median end-to-end | −4.2%, CI spans zero | — | −15% |
+| Private suite, 21 × 3 | **0.810** | 0.715 | no loss: **passed**, 3 wins, 0 losses |
+| Ask-before-acting | 0.875, 0 wrong actions | 0.833, 0 wrong actions | passed |
+| Unsafe actions with the gate open | none new | — | passed |
+| Function calling, 30 | 0.667 | 0.733 | under-calls on parallel calls |
+
+The claim didn't reproduce, and the post-training wasn't promoted. Two other
+results were worth more than the verdict:
+
+**The control model scored 0.715 here and 0.840 in production.** The weights
+are the same, but the production copy runs a different quantisation recipe on
+an older build of the same engine. The 0.125 gap is larger than the 0.095
+between candidate and control. A comparison against the stored production score
+would have called the candidate a regression. On the same build, it won every
+case that differed. Your suite's score belongs to model, quantisation and engine
+together, so hold two of them fixed.
+
+**Its draft head roughly doubled speed.** With multi-token prediction, the same
+weights went from 8.1 to 16.5–20.9 tok/s, or 2.0–2.6× end to end, for 2.5 GiB
+more memory. Code accepted more drafted tokens than prose did. Our "no change"
+gate was byte-identical output at temperature 0, and it failed. That was the gate's
+fault, not the model's: batched verification shifts floating-point results, and
+the texts diverged a few hundred characters in while the finished answer stayed
+the same. Gate draft heads on answers, not bytes.
+
+Full write-up: [DGX-Spark-Results.md §12](DGX-Spark-Results.md#12-addendum-a-post-training-that-promised-fewer-tokens-and-the-draft-head-that-delivered-speed-2026-10-21).
+
+---
+
 ## What we got wrong
 
 ### The apparent winner was survivorship bias
